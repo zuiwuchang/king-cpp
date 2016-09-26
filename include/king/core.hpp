@@ -18,23 +18,6 @@ namespace king
 
     typedef std::uint8_t byte_t;
 
-
-    /*******    factory    *******/
-    template<typename T>
-    class c_pointer_factory
-    {
-    public:
-        //創建 n 個 T 的指針
-        static T* create(const std::size_t n)
-        {
-            return (T*)malloc(sizeof(T) * n);
-        }
-        //釋放 指針
-        static destory(T* p)
-        {
-            free(p);
-        }
-    };
 };
 
 #endif // KING_LIB_HEADER_CORE

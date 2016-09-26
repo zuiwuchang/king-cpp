@@ -7,17 +7,16 @@ namespace king
 {
 namespace bytes
 {
-#define KING_BYTES_ALLOC_BYTE_T king::c_pointer_factory<king::byte_t>
+
 
 //字節數組
-template<typename Alloc = KING_BYTES_ALLOC_BYTE_T>
 class bytes_t
 {
 public:
     //創建大小為 size 的 字節數組
     explicit bytes_t(const std::size_t size)//no throw
     {
-        _bytes = Alloc::create(size);
+        _bytes = new(std::nothrow) king::byte_t[size];
         if(_bytes)
         {
             _size = size;
@@ -37,7 +36,7 @@ public:
     {
         if(_bytes)
         {
-            Alloc::destory(_bytes);
+            delete[] _bytes;
         }
 
         _bytes = m._bytes;
@@ -55,7 +54,7 @@ public:
     {
         if(_bytes)
         {
-            Alloc::destory(_bytes);
+            delete[] _bytes;
         }
     }
     //返回數組 是否不為 空
@@ -91,7 +90,7 @@ public:
     {
         if(_bytes)
         {
-            Alloc::destory(_bytes);
+            delete[] _bytes;
             _bytes = nullptr;
             _size = 0;
         }
@@ -103,41 +102,38 @@ private:
 
 
 //數據 分片
-template<typename AllocByte = KING_BYTES_ALLOC_BYTE_T>
 class fragmentation_t
 {
 protected:
-    typedef bytes_t<AllocByte> array_t;
     typedef king::byte_t byte_t;
 
      //分片數據
-    std::shared_ptr<array_t> _array;
+    std::shared_ptr<bytes_t> _array;
     std::size_t _capacity = 0;
     std::size_t _offset = 0;
     std::size_t _size = 0;
 
 public:
+
     //創建 大小為 size 的分片
     explicit fragmentation_t(const std::size_t size):_capacity(size)
     {
-        _array = std::make_shared<array_t>(size);
+        _array = std::make_shared<bytes_t>(size);
     }
-    fragmentation_t(const fragmentation_t& copy)
-    {
-        _array = copy._array;
-        _capacity = copy._capacity;
-        _offset = copy._offset;
-        _size = copy._size;
-    }
-    fragmentation_t& operator=(const fragmentation_t& copy)
-    {
-        _array = copy._array;
-        _capacity = copy._capacity;
-        _offset = copy._offset;
-        _size = copy._size;
+    fragmentation_t(const fragmentation_t& copy) = delete;
+    fragmentation_t& operator=(const fragmentation_t& copy) = delete;
 
-        return *this;
+    //返回 分片 是否不為空
+    inline explicit operator bool()const
+    {
+        return _capacity != 0;
     }
+    //返回 分片 是否為空
+    inline bool empty()const
+    {
+        return _capacity == 0;
+    }
+
     //重置 分片
     inline void init()
     {
@@ -167,7 +163,7 @@ public:
     }
 
     //寫入數據 返回實際寫入量
-    std::size_t write(const byte_t* bytes,std::size_t n)
+    std::size_t write(const byte_t* bytes,const std::size_t n)
     {
         std::size_t free = get_free();
         std::size_t need = n;
@@ -183,7 +179,7 @@ public:
 
     //讀取 數據 返回實際讀取 量
     //被讀取的 數據 將被 移除 緩衝區
-    std::size_t read(byte_t* bytes,std::size_t n)
+    std::size_t read(byte_t* bytes,const std::size_t n)
     {
         std::size_t need = n;
         if(need > _size)
@@ -199,7 +195,7 @@ public:
     }
 
     //只 copy 數據 不 刪除緩衝區
-    std::size_t copy_to(byte_t* bytes,std::size_t n)
+    std::size_t copy_to(byte_t* bytes,const std::size_t n)const
     {
         std::size_t need = n;
         if (n > _size)
@@ -211,7 +207,7 @@ public:
         return need;
     }
     //跳過n字節 copy
-    std::size_t copy_to(std::size_t skip,byte_t* bytes,std::size_t n)
+    std::size_t copy_to(const std::size_t skip,byte_t* bytes,const std::size_t n)const
     {
         if(skip >= _size)
         {
