@@ -3,6 +3,8 @@
 #define KING_LIB_HEADER_BYTES_TYPE
 
 #include <king/core.hpp>
+
+#include <memory.h>
 namespace king
 {
 namespace bytes
