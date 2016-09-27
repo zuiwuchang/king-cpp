@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1474963968 source:f:\lib\c++\king-cpp\test\net\tcp\test_msg_client\main.cpp
+	<iostream>
+	<king/net/tcp/msg_client.hpp>
+

@@ -1,12 +1,12 @@
 //一個 帶消息邊界的 asio tcp 服務器
 //依賴 server_t
-#ifndef KING_LIB_HEADER_NET_TCP_MSG_SERVER
-#define KING_LIB_HEADER_NET_TCP_MSG_SERVER
+#ifndef KING_LIB_HEADER_NET_TCP_MSG_CLIENT
+#define KING_LIB_HEADER_NET_TCP_MSG_CLIENT
 
 #include "type.hpp"
 
 
-#include "server.hpp"
+#include "client.hpp"
 #include "msg_reader.hpp"
 
 
@@ -18,7 +18,7 @@ namespace tcp
 {
 
     template<typename T,std::size_t N=1024*8>
-    class msg_server_t
+    class msg_client_t
     {
     protected:
         typedef msg_data<T,N> user_t;
@@ -26,27 +26,26 @@ namespace tcp
     public:
         typedef std::shared_ptr<socket_t> socket_spt;
     protected:
-        typedef server_t<user_t> server_t;
+        typedef client_t<user_t> client_t;
 
-        server_t _s;
+        client_t _s;
         msg_reader_t _msg_reader;
 
     public:
-        explicit msg_server_t(const unsigned short port,const msg_reader_t& reader,const std::size_t buffer = 1024 * 8) //throw boost::system::system_error
-            :_s(port,buffer)
+        explicit msg_client_t(const std::string& addr,const unsigned short port,const msg_reader_t& reader,const std::size_t buffer = 1024 * 8) //throw boost::system::system_error
+            :_s(addr,port,buffer)
             ,_msg_reader(reader)
         {
             //轉接 回調 函數
-            _s.accept_bf(boost::bind(&msg_server_t::adapter_accept_bf,this,_1,_2));
-            _s.close_bf(boost::bind(&msg_server_t::adapter_close_bf,this,_1,_2));
-            _s.recv_bf(boost::bind(&msg_server_t::adapter_recv_bf,this,_1,_2,_3,_4));
-            _s.send_bf(boost::bind(&msg_server_t::adapter_send_bf,this,_1,_2,_3));
+            _s.close_bf(boost::bind(&msg_client_t::adapter_close_bf,this,_1,_2));
+            _s.recv_bf(boost::bind(&msg_client_t::adapter_recv_bf,this,_1,_2,_3,_4));
+            _s.send_bf(boost::bind(&msg_client_t::adapter_send_bf,this,_1,_2,_3));
 
 
         }
-        msg_server_t& operator=(const msg_server_t&) = delete;
-        msg_server_t(const msg_server_t&) = delete;
-        ~msg_server_t()
+        msg_client_t& operator=(const msg_client_t&) = delete;
+        msg_client_t(const msg_client_t&) = delete;
+        ~msg_client_t()
         {
             _s.stop();
             _s.join();
@@ -90,28 +89,16 @@ namespace tcp
         }
 
     protected:
-        //連接 回調
-        typedef boost::function<void(msg_server_t*,socket_spt)> accept_bft;
-        accept_bft _accept_bf;
-
-        typedef boost::function<void(msg_server_t*,socket_spt)> close_bft;
+        typedef boost::function<void(msg_client_t*,socket_spt)> close_bft;
         close_bft _close_bf;
 
-        typedef boost::function<void(msg_server_t*,socket_spt,bytes_spt)> recv_bft;
+        typedef boost::function<void(msg_client_t*,socket_spt,bytes_spt)> recv_bft;
         recv_bft _recv_bf;
 
-        typedef boost::function<void(msg_server_t*,socket_spt,bytes_spt)> send_bft;
+        typedef boost::function<void(msg_client_t*,socket_spt,bytes_spt)> send_bft;
         send_bft _send_bf;
 
     public:
-        inline void accept_bf(accept_bft bf)
-        {
-            _accept_bf = bf;
-        }
-        inline accept_bft accept_bf()const
-        {
-            return _accept_bf;
-        }
         inline void close_bf(close_bft bf)
         {
             _close_bf = bf;
@@ -137,21 +124,14 @@ namespace tcp
             return _send_bf;
         }
     protected:
-        void adapter_accept_bf(server_t* s,socket_spt c)
-        {
-            if(_accept_bf)
-            {
-                _accept_bf(this,c);
-            }
-        }
-        void adapter_close_bf(server_t* s,socket_spt c)
+        void adapter_close_bf(client_t* s,socket_spt c)
         {
             if(_close_bf)
             {
                 _close_bf(this,c);
             }
         }
-        void adapter_send_bf(server_t* s,socket_spt c,bytes_spt buffer)
+        void adapter_send_bf(client_t* s,socket_spt c,bytes_spt buffer)
         {
             if(_send_bf)
             {
@@ -159,7 +139,7 @@ namespace tcp
             }
         }
 
-        void adapter_recv_bf(server_t* s,socket_spt c,const king::byte_t* buffer,std::size_t n)
+        void adapter_recv_bf(client_t* s,socket_spt c,const king::byte_t* buffer,std::size_t n)
         {
             auto& t = c->get_t();
             std::shared_ptr<king::bytes::buffer_t> buf = t.buffer();
@@ -245,6 +225,7 @@ namespace tcp
                 //reset flag
                 t._size = KING_NET_TCP_WAIT_MSG_HEADER;
             }
+
         }
     };
 
@@ -253,4 +234,4 @@ namespace tcp
 };
 };
 
-#endif // KING_LIB_HEADER_NET_TCP_SERVER
+#endif // KING_LIB_HEADER_NET_TCP_MSG_CLIENT
