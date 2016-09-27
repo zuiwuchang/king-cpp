@@ -42,11 +42,11 @@ namespace tcp
 
         }
         //返回 boost socket 的引用
-        socket_bt& socket()
+        inline socket_bt& socket()
         {
             return _s;
         }
-        T& get_t()
+        inline T& get_t()
         {
             return _user;
         }
