@@ -1,4 +1,5 @@
-//需要用到的 型別 定義
+//使用 boost asio 製作的 一個 tcp 庫
+//依賴 boost::asio boost::thread
 #ifndef KING_LIB_HEADER_NET_TCP_TYPE
 #define KING_LIB_HEADER_NET_TCP_TYPE
 

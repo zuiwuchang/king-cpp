@@ -1,6 +1,6 @@
-//需要用到的 型別 定義
-#ifndef KING_LIB_HEADER_NET_TCP_SERVER
-#define KING_LIB_HEADER_NET_TCP_SERVER
+//一個 asio tcp 客戶端
+#ifndef KING_LIB_HEADER_NET_TCP_CLIENT
+#define KING_LIB_HEADER_NET_TCP_CLIENT
 
 #include "type.hpp"
 
@@ -319,4 +319,4 @@ namespace tcp
 };
 };
 
-#endif // KING_LIB_HEADER_NET_TCP_SERVER
+#endif // KING_LIB_HEADER_NET_TCP_CLIENT

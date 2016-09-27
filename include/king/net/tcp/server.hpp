@@ -1,4 +1,4 @@
-//需要用到的 型別 定義
+//一個 asio tcp 服務器
 #ifndef KING_LIB_HEADER_NET_TCP_SERVER
 #define KING_LIB_HEADER_NET_TCP_SERVER
 
