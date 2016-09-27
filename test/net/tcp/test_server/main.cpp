@@ -20,7 +20,7 @@ int main()
         s.accept_bf(boost::bind(on_accet,_1,_2));
         s.close_bf(boost::bind(on_close,_1,_2));
         s.recv_bf(boost::bind(on_recv,_1,_2,_3,_4));
-        s.send_bf(boost::bind(on_send,_1,_2,_3));
+        s.send_bf(boost::bind(on_send,_1,_2,_3));   //只有 push_back_write 是數據會回調次函數
 
 
         //運行 工作 線程
