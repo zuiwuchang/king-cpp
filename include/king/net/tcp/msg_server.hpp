@@ -208,7 +208,7 @@ namespace tcp
                     }
                 }
 
-                if(t._size < size)
+                if(t._size > size)
                 {
                     //wait body
                     return;

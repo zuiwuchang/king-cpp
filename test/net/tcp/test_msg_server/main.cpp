@@ -37,7 +37,7 @@ int main()
         s.accept_bf(boost::bind(on_accet,_1,_2));
         s.close_bf(boost::bind(on_close,_1,_2));
         s.recv_bf(boost::bind(on_recv,_1,_2,_3));
-        s.send_bf(boost::bind(on_send,_1,_2,_3));   //只有 push_back_write 是數據會回調次函數
+        //s.send_bf(boost::bind(on_send,_1,_2,_3));   //只有 push_back_write 是數據會回調次函數
 
 
         //運行 工作 線程
@@ -79,7 +79,7 @@ void on_close(msg_server_t* s,socket_spt c)
 void on_recv(msg_server_t* s,socket_spt c,king::net::tcp::bytes_spt buffer)
 {
     std::string str((const char*)(buffer->get() + HEADER_SIZE),buffer->size() - HEADER_SIZE);
-    std::cout<<"one recv\t"<<str<<"\n";
+    //std::cout<<"one recv\t"<<str<<"\n";
 
     if(str == "i want a job")
     {
