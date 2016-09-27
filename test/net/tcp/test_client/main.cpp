@@ -2,11 +2,15 @@
 #include <king/net/tcp/client.hpp>
 using namespace std;
 
-void on_close(king::net::tcp::client_t* s,king::net::tcp::socket_spt c);
-void on_recv(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,const king::byte_t* bytes,std::size_t n);
-void on_send(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,king::net::tcp::bytes_spt buffer);
+typedef std::size_t user_t; //和socket 關聯的 用戶自定義 數據
+typedef king::net::tcp::client_t<user_t> client_t;
+typedef std::shared_ptr<king::net::tcp::socket_t<user_t>> socket_spt;
 
-void post_str(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,std::string str);
+void on_close(client_t* s,socket_spt c);
+void on_recv(client_t* s,socket_spt c,const king::byte_t* bytes,std::size_t n);
+void on_send(client_t* s,socket_spt c,king::net::tcp::bytes_spt buffer);
+
+void post_str(client_t* s,socket_spt c,std::string str);
 
 int main()
 {
@@ -15,7 +19,7 @@ int main()
     try
     {
         //創建 服務器
-        king::net::tcp::client_t c(addr,port);
+        client_t c(addr,port);
         std::cout<<"connect at "<<addr<<":"<<port<<"\n";
 
         //註冊 回調
@@ -43,12 +47,12 @@ int main()
     return 0;
 }
 
-void on_close(king::net::tcp::client_t* s,king::net::tcp::socket_spt c)
+void on_close(client_t* s,socket_spt c)
 {
     //don't call any c's function at here
     std::cout<<"disconnect\n";
 }
-void on_recv(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,const king::byte_t* bytes,std::size_t n)
+void on_recv(client_t* s,socket_spt c,const king::byte_t* bytes,std::size_t n)
 {
     std::string str((const char*)bytes,n);
     std::cout<<"one recv\t"<<str<<"\n";
@@ -66,13 +70,13 @@ void on_recv(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,const king
         s->stop();
     }
 }
-void on_send(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,king::net::tcp::bytes_spt buffer)
+void on_send(client_t* s,socket_spt c,king::net::tcp::bytes_spt buffer)
 {
     std::string str((const char*)buffer->get(),buffer->size());
     std::cout<<"one send\t"<<str<<"\n";
 }
 
-void post_str(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,std::string str)
+void post_str(client_t* s,socket_spt c,std::string str)
 {
     const king::byte_t* b = (const king::byte_t*)str.data();
     std::size_t n = str.size();

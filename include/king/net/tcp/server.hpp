@@ -16,10 +16,13 @@ namespace net
 {
 namespace tcp
 {
-
+    template<typename T>
     class server_t
     {
     protected:
+        typedef king::net::tcp::socket_t<T> socket_t;
+        typedef std::shared_ptr<socket_t> socket_spt;
+
         //io 服務
         io_service_t _io_s;
 
@@ -76,7 +79,7 @@ namespace tcp
         {
             _accept_bf = bf;
         }
-        accept_bft accept_bf()const
+        inline accept_bft accept_bf()const
         {
             return _accept_bf;
         }
@@ -85,7 +88,7 @@ namespace tcp
         {
             _close_bf = bf;
         }
-        close_bft close_bf()const
+        inline close_bft close_bf()const
         {
             return _close_bf;
         }
@@ -94,7 +97,7 @@ namespace tcp
         {
             _recv_bf = bf;
         }
-        recv_bft recv_bf()const
+        inline recv_bft recv_bf()const
         {
             return _recv_bf;
         }
@@ -103,7 +106,7 @@ namespace tcp
         {
             _send_bf = bf;
         }
-        send_bft send_bf()const
+        inline send_bft send_bf()const
         {
             return _send_bf;
         }

@@ -16,10 +16,13 @@ namespace net
 {
 namespace tcp
 {
-
+    template<typename T>
     class client_t
     {
     protected:
+        typedef king::net::tcp::socket_t<T> socket_t;
+        typedef std::shared_ptr<socket_t> socket_spt;
+
         //io 服務
         io_service_t _io_s;
 

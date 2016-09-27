@@ -26,12 +26,16 @@ namespace tcp
     //增加 post_write 將數據 寫入 一個 隊列
     //以使 多次 異步 async_write_some 之間 不會 亂順序
     //盡量 不要將 post_write 和 async_write_some 混用
+    template<typename T>
     class socket_t
     {
     protected:
         //boost socket
         typedef boost::asio::ip::tcp::socket socket_bt;
         socket_bt _s;
+
+        //用戶 自定義關聯 數據
+        T _user;
     public:
         explicit socket_t(io_service_t& io_s):_s(io_s)
         {
@@ -41,6 +45,10 @@ namespace tcp
         socket_bt& socket()
         {
             return _s;
+        }
+        T& get_t()
+        {
+            return _user;
         }
 
         //等發 數據 列表
@@ -52,7 +60,6 @@ namespace tcp
         bool wait = false;
 
     };
-    typedef std::shared_ptr<socket_t> socket_spt;
 
 };
 };

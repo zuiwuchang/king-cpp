@@ -1,19 +1,26 @@
 #include <iostream>
+#include <atomic>
 #include <king/net/tcp/server.hpp>
 
-void on_accet(king::net::tcp::server_t* s,king::net::tcp::socket_spt c);
-void on_close(king::net::tcp::server_t* s,king::net::tcp::socket_spt c);
-void on_recv(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,const king::byte_t* bytes,std::size_t n);
-void on_send(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,king::net::tcp::bytes_spt buffer);
+typedef std::size_t user_t; //和socket 關聯的 用戶自定義 數據
+typedef king::net::tcp::server_t<user_t> server_t;
+typedef std::shared_ptr<king::net::tcp::socket_t<user_t>> socket_spt;
 
-void post_str(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,std::string str);
+void on_accet(server_t* s,socket_spt c);
+void on_close(server_t* s,socket_spt c);
+void on_recv(server_t* s,socket_spt c,const king::byte_t* bytes,std::size_t n);
+void on_send(server_t* s,socket_spt c,king::net::tcp::bytes_spt buffer);
+
+void post_str(server_t* s,socket_spt c,std::string str);
+
+std::size_t get_id();
 int main()
 {
     unsigned short port = 1102;
     try
     {
         //創建 服務器
-        king::net::tcp::server_t s(port);
+        server_t s(port);
         std::cout<<"work at :"<<port<<"\n";
 
         //註冊 回調
@@ -38,9 +45,12 @@ int main()
 
     return 0;
 }
-void on_accet(king::net::tcp::server_t* s,king::net::tcp::socket_spt c)
+
+void on_accet(server_t* s,socket_spt c)
 {
-    std::cout<<"one in\t"
+    std::size_t id = get_id();
+    c->get_t() = id;
+    std::cout<<"one in("<<id<<")\t"
         <<c->socket().remote_endpoint().address().to_string()
         <<":"
         <<c->socket().remote_endpoint().port()
@@ -50,12 +60,13 @@ void on_accet(king::net::tcp::server_t* s,king::net::tcp::socket_spt c)
         post_str(s,c,"this is cerberus's server");
 
 }
-void on_close(king::net::tcp::server_t* s,king::net::tcp::socket_spt c)
+void on_close(server_t* s,socket_spt c)
 {
     //don't call any c's function at here
-    std::cout<<"one out\n";
+    std::size_t id = c->get_t();
+    std::cout<<"one out("<<id<<")\n";
 }
-void on_recv(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,const king::byte_t* bytes,std::size_t n)
+void on_recv(server_t* s,socket_spt c,const king::byte_t* bytes,std::size_t n)
 {
     std::string str((const char*)bytes,n);
     std::cout<<"one recv\t"<<str<<"\n";
@@ -69,15 +80,21 @@ void on_recv(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,const king
         post_str(s,c,"you are cerberus soldier now");
     }
 }
-void on_send(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,king::net::tcp::bytes_spt buffer)
+void on_send(server_t* s,socket_spt c,king::net::tcp::bytes_spt buffer)
 {
     std::string str((const char*)buffer->get(),buffer->size());
     std::cout<<"one send\t"<<str<<"\n";
 }
 
-void post_str(king::net::tcp::server_t* s,king::net::tcp::socket_spt c,std::string str)
+void post_str(server_t* s,socket_spt c,std::string str)
 {
     const king::byte_t* b = (const king::byte_t*)str.data();
     std::size_t n = str.size();
     s->push_back_write(c,b,n);
+}
+
+std::size_t get_id()
+{
+    static std::atomic<std::size_t> id;
+    return ++id;
 }
