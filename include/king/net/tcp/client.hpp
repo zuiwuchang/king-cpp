@@ -183,9 +183,8 @@ namespace tcp
         }
 
         //向 服務器 發送 隊列 寫入一條 發送 數據
-        bool push_back_write(const byte_t* bytes,std::size_t n)
+        bool push_back_write(socket_spt s,const byte_t* bytes,std::size_t n)
         {
-            socket_spt s = _socket;
             if(!s->socket().is_open())
             {
                 return false;
@@ -210,11 +209,10 @@ namespace tcp
             //copy 待write 數據
             std::copy(bytes,bytes+n,buffer->get());
 
-            return push_back_write(buffer);
+            return push_back_write(s,buffer);
         }
-        bool push_back_write(bytes_spt buffer)
+        bool push_back_write(socket_spt s,bytes_spt buffer)
         {
-            socket_spt s = _socket;
             if(!s->socket().is_open())
             {
                 return false;

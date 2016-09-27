@@ -6,7 +6,7 @@ void on_close(king::net::tcp::client_t* s,king::net::tcp::socket_spt c);
 void on_recv(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,const king::byte_t* bytes,std::size_t n);
 void on_send(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,king::net::tcp::bytes_spt buffer);
 
-void post_str(king::net::tcp::client_t* s,std::string str);
+void post_str(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,std::string str);
 
 int main()
 {
@@ -55,11 +55,11 @@ void on_recv(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,const king
 
     if(str == "this is cerberus's server")
     {
-        post_str(s,"i want a job");
+        post_str(s,c,"i want a job");
     }
     else if(str == "what you can do")
     {
-        post_str(s,"i'm a solider");
+        post_str(s,c,"i'm a solider");
     }
     else if(str == "you are cerberus soldier now")
     {
@@ -72,9 +72,9 @@ void on_send(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,king::net:
     std::cout<<"one send\t"<<str<<"\n";
 }
 
-void post_str(king::net::tcp::client_t* s,std::string str)
+void post_str(king::net::tcp::client_t* s,king::net::tcp::socket_spt c,std::string str)
 {
     const king::byte_t* b = (const king::byte_t*)str.data();
     std::size_t n = str.size();
-    s->push_back_write(b,n);
+    s->push_back_write(c,b,n);
 }
