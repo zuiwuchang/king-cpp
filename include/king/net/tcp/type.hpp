@@ -51,6 +51,11 @@ namespace tcp
             return _user;
         }
 
+        inline std::size_t native()
+        {
+            return _s.native();
+        }
+
         //等發 數據 列表
         std::list<bytes_spt> _datas;
         //同步 對象

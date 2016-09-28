@@ -1,4 +1,4 @@
-//一個 帶消息邊界的 asio tcp 服務器
+//一個 帶消息邊界的 asio tcp 客戶端
 //依賴 server_t
 #ifndef KING_LIB_HEADER_NET_TCP_MSG_CLIENT
 #define KING_LIB_HEADER_NET_TCP_MSG_CLIENT
