@@ -10,7 +10,7 @@
 
 1475029127 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\configure.h
 
-1475042199 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\server.cpp
+1475051090 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\server.cpp
 	"server.h"
 
 1475042180 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\server.h
@@ -35,4 +35,14 @@
 
 1475049622 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\socket.cpp
 	"socket.h"
+
+1475050559 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\client.cpp
+	"client.h"
+
+1475050645 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\client.h
+	<king/net/tcp/msg_client.hpp>
+	"configure.h"
+	"reader.h"
+	"socket.h"
+	"buffer.h"
 

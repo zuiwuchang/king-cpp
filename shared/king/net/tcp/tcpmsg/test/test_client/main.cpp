@@ -1,18 +1,17 @@
 #include <iostream>
-#include "c_dynamic_ktcp.hpp"
+
+#include "../test_server/c_dynamic_ktcp.hpp"
 
 #define HEADER_SIZE 6
 #define MAX_MSG_SIZE 1024 * 16
 #define HEADER_FALG 0x0000044E
 std::size_t get_message_size(const ktcp::byte_t* b,std::size_t n);
 
-bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str);
+bool post_str(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket,std::string str);
 
-void on_accept(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket);
-void on_close(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket);
-void on_recv(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer);
-void on_send(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer);
-
+void on_close(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket);
+void on_recv(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer);
+void on_send(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer);
 int main()
 {
     //加載dll
@@ -31,37 +30,38 @@ int main()
         std::cout<<"CreateReader error\n";
         return 0;
     }
-    //創建 服務器
-    const unsigned short port = 1102;
-    ktcp::HSERVER hServer = funcs.CreateServer(port,hReader);
 
-    //銷毀 消息解析 器 服務器創建成功之後 便可銷毀 消息解析器
+    //創建 客戶端
+    const char* addr = "127.0.0.1";
+    const unsigned short port = 1102;
+    ktcp::HCLIENT hClient = funcs.CreateClient(addr,port,hReader);
+
+    //銷毀 消息解析 器 客戶端創建成功之後 便可銷毀 消息解析器
     funcs.DestoryReader(hReader);
-    if(!hServer)
+    if(!hClient)
     {
-        std::cout<<"CreateServer error\n";
+        std::cout<<"CreateClient error\n";
         return 0;
     }
-    std::cout<<"work at :"<<port<<"\n";
+    std::cout<<"connect succes\n";
 
     //註冊回調事件
-    funcs.SetServerOnAccept(hServer,on_accept);
-    funcs.SetServerOnClose(hServer,on_close);
-    funcs.SetServerOnRecv(hServer,on_recv);
-    //funcs.SetServerOnSend(hServer,on_send);
+    funcs.SetClientOnClose(hClient,on_close);
+    funcs.SetClientOnRecv(hClient,on_recv);
+    funcs.SetClientOnSend(hClient,on_send);
 
 
     //運行 工作 線程
-    funcs.RunServer(hServer);
-    std::cout<<"has "<<funcs.GetServerThreads(hServer)<<" work_threads\n";
+    funcs.RunClient(hClient);
+    std::cout<<"has "<<funcs.GetClientThreads(hClient)<<" work_threads\n";
 
 
     //等待 工作 結束
-    funcs.JoinServer(hServer);
+    funcs.JoinClient(hClient);
 
 
-    //銷毀 服務器
-    funcs.DestoryServer(hServer);
+    //銷毀 客戶端
+    funcs.DestoryClient(hClient);
     return 0;
 }
 std::size_t get_message_size(const ktcp::byte_t* b,std::size_t n)
@@ -88,7 +88,8 @@ std::size_t get_message_size(const ktcp::byte_t* b,std::size_t n)
 
     return len;
 }
-bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str)
+
+bool post_str(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket,std::string str)
 {
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
 
@@ -106,7 +107,7 @@ bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str)
     std::copy(str.begin(),str.end(),ptr + HEADER_SIZE);
 
 
-    if(funcs.ServerWriteBuffer(hServer,hSocket,hBuffer))
+    if(funcs.ClientWriteBuffer(hClient,hSocket,hBuffer))
     {
         //銷毀 buffer
         funcs.DestoryBuffer(hBuffer);
@@ -118,43 +119,12 @@ bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str)
     funcs.DestoryBuffer(hBuffer);
     return true;
 }
-
-void on_accept(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket)
+void on_close(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket)
 {
-    ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
-
-    {
-        //創建一份 副本 以便 傳遞到其它地方
-        ktcp::HSOCKET hSocketCopy =  funcs.CopySocket(hSocket);
-        if(hSocketCopy)
-        {
-            //不需要 hSocketCopy 時 需要手動 DestorySocket釋放 資源
-            funcs.DestorySocket(hSocketCopy);
-        }
-    }
-
-
-
-    std::size_t id = funcs.GetSocketNative(hSocket);
-    funcs.SetSocketData(hSocket,id);
-
-    const unsigned short port = funcs.GetSocketRemotePort(hSocket);
-    char ip[64] = {0};
-    funcs.GetSocketRemoteIp(hSocket,ip,63);
-    std::cout<<"one in("<<id<<")\t"<<ip<<":"<<port<<"\n";
-    post_str(hServer,hSocket,"welcome");
-    post_str(hServer,hSocket,"this is cerberus's server");
-}
-void on_close(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket)
-{
-    ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
-
     //don't call any hSocket func other than GetSocketData
-    std::size_t id = funcs.GetSocketData(hSocket);
-
-    std::cout<<"one out("<<id<<")\n";
+    std::cout<<"disconnect\n";
 }
-void on_recv(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
+void on_recv(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
 {
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
 
@@ -171,22 +141,22 @@ void on_recv(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
     std::size_t size = funcs.GetBufferSize(hBuffer);
 
     std::string str((char*)(ptr + HEADER_SIZE),size - HEADER_SIZE);
-    //std::cout<<"one recv\t"<<str<<"\n";
+    std::cout<<"one recv\t"<<str<<"\n";
 
-    if(str == "i want a job")
+    if(str == "this is cerberus's server")
     {
-        post_str(hServer,hSocket,"what you can do");
+        post_str(hClient,hSocket,"i want a job");
     }
-    else if(str == "i'm a solider")
+    else if(str == "what you can do")
     {
-        post_str(hServer,hSocket,"you are cerberus soldier now");
+        post_str(hClient,hSocket,"i'm a solider");
     }
-    else if(str == "you are die")
+    else if(str == "you are cerberus soldier now")
     {
-		funcs.StopServer(hServer);
+        funcs.StopClient(hClient);
     }
 }
-void on_send(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
+void on_send(ktcp::HCLIENT hClient,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
 {
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
 
@@ -199,8 +169,6 @@ void on_send(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
             funcs.DestoryBuffer(hBufferCopy);
         }
     }
-
-
 
     ktcp::byte_t* ptr = funcs.GetBufferPtr(hBuffer);
     std::size_t size = funcs.GetBufferSize(hBuffer);

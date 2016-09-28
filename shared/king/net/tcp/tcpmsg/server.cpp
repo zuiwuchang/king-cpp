@@ -90,18 +90,18 @@ BOOL KING_C_CALL KTcp_ServerWriteBuffer(KTcp_HSERVER hServer,KTcp_HSOCKET hSocke
     return FALSE;
 }
 
-void __dtcp__server_accept(KTcp_FuncServerOnAccept func,KTcp_HSERVER hServer,KTcp_SOCKET s)
+void __ktcp__server_accept(KTcp_FuncServerOnAccept func,KTcp_HSERVER hServer,KTcp_SOCKET s)
 {
     func(hServer,&s);
 }
 KING_C_API
 void KING_C_CALL KTcp_SetServerOnAccept(KTcp_HSERVER hServer,KTcp_FuncServerOnAccept func)
 {
-    hServer->accept_bf(boost::bind(__dtcp__server_accept,func,_1,_2));
+    hServer->accept_bf(boost::bind(__ktcp__server_accept,func,_1,_2));
 
 }
 
-void __dtcp__server_close(KTcp_FuncServerOnClose func,KTcp_HSERVER hServer,KTcp_SOCKET s)
+void __ktcp__server_close(KTcp_FuncServerOnClose func,KTcp_HSERVER hServer,KTcp_SOCKET s)
 {
     func(hServer,&s);
 }
@@ -109,11 +109,11 @@ void __dtcp__server_close(KTcp_FuncServerOnClose func,KTcp_HSERVER hServer,KTcp_
 KING_C_API
 void KING_C_CALL KTcp_SetServerOnClose(KTcp_HSERVER hServer,KTcp_FuncServerOnClose func)
 {
-    hServer->close_bf(boost::bind(__dtcp__server_close,func,_1,_2));
+    hServer->close_bf(boost::bind(__ktcp__server_close,func,_1,_2));
 }
 
 
-void __dtcp__server_recv(KTcp_FuncServerOnRecv func,KTcp_HSERVER hServer,KTcp_SOCKET s,KTcp_BUFFER b)
+void __ktcp__server_recv(KTcp_FuncServerOnRecv func,KTcp_HSERVER hServer,KTcp_SOCKET s,KTcp_BUFFER b)
 {
     func(hServer,&s,&b);
 }
@@ -121,10 +121,10 @@ void __dtcp__server_recv(KTcp_FuncServerOnRecv func,KTcp_HSERVER hServer,KTcp_SO
 KING_C_API
 void KING_C_CALL KTcp_SetServerOnRecv(KTcp_HSERVER hServer,KTcp_FuncServerOnRecv func)
 {
-    hServer->recv_bf(boost::bind(__dtcp__server_recv,func,_1,_2,_3));
+    hServer->recv_bf(boost::bind(__ktcp__server_recv,func,_1,_2,_3));
 }
 
-void __dtcp__server_send(KTcp_FuncServerOnSend func,KTcp_HSERVER hServer,KTcp_SOCKET s,KTcp_BUFFER b)
+void __ktcp__server_send(KTcp_FuncServerOnSend func,KTcp_HSERVER hServer,KTcp_SOCKET s,KTcp_BUFFER b)
 {
     func(hServer,&s,&b);
 }
@@ -132,5 +132,5 @@ void __dtcp__server_send(KTcp_FuncServerOnSend func,KTcp_HSERVER hServer,KTcp_SO
 KING_C_API
 void KING_C_CALL KTcp_SetServerOnSend(KTcp_HSERVER hServer,KTcp_FuncServerOnSend func)
 {
-    hServer->send_bf(boost::bind(__dtcp__server_send,func,_1,_2,_3));
+    hServer->send_bf(boost::bind(__ktcp__server_send,func,_1,_2,_3));
 }

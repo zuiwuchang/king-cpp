@@ -171,6 +171,54 @@ namespace ktcp
     typedef void (KING_C_CALL *SetServerOnSend_F)(HSERVER hServer,FuncServerOnSend_F func);
 
 
+
+    //客戶端 定義
+    typedef struct _CLIENT_
+    {
+    }CLIENT,*HCLIENT;
+
+    //回調 函數 定義
+    typedef void (KING_C_CALL *FuncClientOnClose_F)(HCLIENT,HSOCKET);
+    typedef void (KING_C_CALL *FuncClientOnRecv_F)(HCLIENT,HSOCKET,HBUFFER);
+    typedef void (KING_C_CALL *FuncClientOnSend_F)(HCLIENT,HSOCKET,HBUFFER);
+
+    //創建 客戶端
+    typedef HCLIENT (KING_C_CALL *CreateClient_F)(const char* addr,const unsigned short port,HREADER hReader);
+
+    //銷毀 客戶端
+    typedef void (KING_C_CALL *DestoryClient_F)(HCLIENT hClient);
+
+    //啟動 工作 線程
+    typedef void (KING_C_CALL *RunClient_F)(HCLIENT hClient);
+
+    //停止 服務
+    typedef void (KING_C_CALL *StopClient_F)(HCLIENT hClient);
+
+    //返回 服務是否 停止
+    typedef BOOL (KING_C_CALL *IsClientStopped_F)(HCLIENT hClient);
+
+    //返回 工作 線程 數量
+    typedef std::size_t (KING_C_CALL *GetClientThreads_F)(HCLIENT hClient);
+
+    //等待 線程 停止 工作
+    typedef void (KING_C_CALL *JoinClient_F)(HCLIENT hClient);
+
+    //向 服務器 發送 隊列 寫入一條 發送 數據
+    typedef BOOL (KING_C_CALL *ClientWriteBytes_F)(HCLIENT hClient,HSOCKET hSocket,const byte_t* bytes,std::size_t n);
+    typedef BOOL (KING_C_CALL *ClientWriteBuffer_F)(HCLIENT hClient,HSOCKET hSocket,HBUFFER hBuffer);
+
+    //註冊 斷開 回調
+    typedef void (KING_C_CALL *SetClientOnClose_F)(HCLIENT hClient,FuncClientOnClose_F func);
+
+    //註冊 recv 回調
+    typedef void (KING_C_CALL *SetClientOnRecv_F)(HCLIENT hClient,FuncClientOnRecv_F func);
+
+    //註冊 send 回調
+    typedef void (KING_C_CALL *SetClientOnSend_F)(HCLIENT hClient,FuncClientOnSend_F func);
+
+
+
+    //模塊 定義
     class funcs_t
     {
     private:
@@ -269,19 +317,32 @@ namespace ktcp
         KTCP_VAR_FUNC(GetSocketRemotePort)
         KTCP_VAR_FUNC(GetSocketRemoteIp)
 
-        KTCP_VAR_FUNC(CreateServer);
-        KTCP_VAR_FUNC(DestoryServer);
-        KTCP_VAR_FUNC(RunServer);
-        KTCP_VAR_FUNC(StopServer);
-        KTCP_VAR_FUNC(IsServerStopped);
-        KTCP_VAR_FUNC(GetServerThreads);
-        KTCP_VAR_FUNC(JoinServer);
-        KTCP_VAR_FUNC(ServerWriteBytes);
-        KTCP_VAR_FUNC(ServerWriteBuffer);
-        KTCP_VAR_FUNC(SetServerOnAccept);
-        KTCP_VAR_FUNC(SetServerOnClose);
-        KTCP_VAR_FUNC(SetServerOnRecv);
-        KTCP_VAR_FUNC(SetServerOnSend);
+        KTCP_VAR_FUNC(CreateServer)
+        KTCP_VAR_FUNC(DestoryServer)
+        KTCP_VAR_FUNC(RunServer)
+        KTCP_VAR_FUNC(StopServer)
+        KTCP_VAR_FUNC(IsServerStopped)
+        KTCP_VAR_FUNC(GetServerThreads)
+        KTCP_VAR_FUNC(JoinServer)
+        KTCP_VAR_FUNC(ServerWriteBytes)
+        KTCP_VAR_FUNC(ServerWriteBuffer)
+        KTCP_VAR_FUNC(SetServerOnAccept)
+        KTCP_VAR_FUNC(SetServerOnClose)
+        KTCP_VAR_FUNC(SetServerOnRecv)
+        KTCP_VAR_FUNC(SetServerOnSend)
+
+        KTCP_VAR_FUNC(CreateClient)
+        KTCP_VAR_FUNC(DestoryClient)
+        KTCP_VAR_FUNC(RunClient)
+        KTCP_VAR_FUNC(StopClient)
+        KTCP_VAR_FUNC(IsClientStopped)
+        KTCP_VAR_FUNC(GetClientThreads)
+        KTCP_VAR_FUNC(JoinClient)
+        KTCP_VAR_FUNC(ClientWriteBytes)
+        KTCP_VAR_FUNC(ClientWriteBuffer)
+        KTCP_VAR_FUNC(SetClientOnClose)
+        KTCP_VAR_FUNC(SetClientOnRecv)
+        KTCP_VAR_FUNC(SetClientOnSend)
     private:
         void reset_funcs()
         {
@@ -305,19 +366,32 @@ namespace ktcp
             KTCP_RESET_FUNC(GetSocketRemotePort)
             KTCP_RESET_FUNC(GetSocketRemoteIp)
 
-            KTCP_RESET_FUNC(CreateServer);
-            KTCP_RESET_FUNC(DestoryServer);
-            KTCP_RESET_FUNC(RunServer);
-            KTCP_RESET_FUNC(StopServer);
-            KTCP_RESET_FUNC(IsServerStopped);
-            KTCP_RESET_FUNC(GetServerThreads);
-            KTCP_RESET_FUNC(JoinServer);
-            KTCP_RESET_FUNC(ServerWriteBytes);
-            KTCP_RESET_FUNC(ServerWriteBuffer);
-            KTCP_RESET_FUNC(SetServerOnAccept);
-            KTCP_RESET_FUNC(SetServerOnClose);
-            KTCP_RESET_FUNC(SetServerOnRecv);
-            KTCP_RESET_FUNC(SetServerOnSend);
+            KTCP_RESET_FUNC(CreateServer)
+            KTCP_RESET_FUNC(DestoryServer)
+            KTCP_RESET_FUNC(RunServer)
+            KTCP_RESET_FUNC(StopServer)
+            KTCP_RESET_FUNC(IsServerStopped)
+            KTCP_RESET_FUNC(GetServerThreads)
+            KTCP_RESET_FUNC(JoinServer)
+            KTCP_RESET_FUNC(ServerWriteBytes)
+            KTCP_RESET_FUNC(ServerWriteBuffer)
+            KTCP_RESET_FUNC(SetServerOnAccept)
+            KTCP_RESET_FUNC(SetServerOnClose)
+            KTCP_RESET_FUNC(SetServerOnRecv)
+            KTCP_RESET_FUNC(SetServerOnSend)
+
+            KTCP_RESET_FUNC(CreateClient)
+            KTCP_RESET_FUNC(DestoryClient)
+            KTCP_RESET_FUNC(RunClient)
+            KTCP_RESET_FUNC(StopClient)
+            KTCP_RESET_FUNC(IsClientStopped)
+            KTCP_RESET_FUNC(GetClientThreads)
+            KTCP_RESET_FUNC(JoinClient)
+            KTCP_RESET_FUNC(ClientWriteBytes)
+            KTCP_RESET_FUNC(ClientWriteBuffer)
+            KTCP_RESET_FUNC(SetClientOnClose)
+            KTCP_RESET_FUNC(SetClientOnRecv)
+            KTCP_RESET_FUNC(SetClientOnSend)
 
         }
         bool get_funcs()
@@ -342,20 +416,32 @@ namespace ktcp
             KTCP_GET_FUNC(GetSocketRemotePort)
             KTCP_GET_FUNC(GetSocketRemoteIp)
 
+            KTCP_GET_FUNC(CreateServer)
+            KTCP_GET_FUNC(DestoryServer)
+            KTCP_GET_FUNC(RunServer)
+            KTCP_GET_FUNC(StopServer)
+            KTCP_GET_FUNC(IsServerStopped)
+            KTCP_GET_FUNC(GetServerThreads)
+            KTCP_GET_FUNC(JoinServer)
+            KTCP_GET_FUNC(ServerWriteBytes)
+            KTCP_GET_FUNC(ServerWriteBuffer)
+            KTCP_GET_FUNC(SetServerOnAccept)
+            KTCP_GET_FUNC(SetServerOnClose)
+            KTCP_GET_FUNC(SetServerOnRecv)
+            KTCP_GET_FUNC(SetServerOnSend)
 
-            KTCP_GET_FUNC(CreateServer);
-            KTCP_GET_FUNC(DestoryServer);
-            KTCP_GET_FUNC(RunServer);
-            KTCP_GET_FUNC(StopServer);
-            KTCP_GET_FUNC(IsServerStopped);
-            KTCP_GET_FUNC(GetServerThreads);
-            KTCP_GET_FUNC(JoinServer);
-            KTCP_GET_FUNC(ServerWriteBytes);
-            KTCP_GET_FUNC(ServerWriteBuffer);
-            KTCP_GET_FUNC(SetServerOnAccept);
-            KTCP_GET_FUNC(SetServerOnClose);
-            KTCP_GET_FUNC(SetServerOnRecv);
-            KTCP_GET_FUNC(SetServerOnSend);
+            KTCP_GET_FUNC(CreateClient)
+            KTCP_GET_FUNC(DestoryClient)
+            KTCP_GET_FUNC(RunClient)
+            KTCP_GET_FUNC(StopClient)
+            KTCP_GET_FUNC(IsClientStopped)
+            KTCP_GET_FUNC(GetClientThreads)
+            KTCP_GET_FUNC(JoinClient)
+            KTCP_GET_FUNC(ClientWriteBytes)
+            KTCP_GET_FUNC(ClientWriteBuffer)
+            KTCP_GET_FUNC(SetClientOnClose)
+            KTCP_GET_FUNC(SetClientOnRecv)
+            KTCP_GET_FUNC(SetClientOnSend)
 
             return true;
         }
