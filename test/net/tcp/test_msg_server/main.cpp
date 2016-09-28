@@ -1,5 +1,4 @@
 #include <iostream>
-#include <atomic>
 #include <king/net/tcp/msg_server.hpp>
 
 typedef std::size_t user_t; //和socket 關聯的 用戶自定義 數據
@@ -19,7 +18,6 @@ void post_str(msg_server_t* s,socket_spt c,std::string str);
 std::size_t get_message_size(const king::byte_t* b,std::size_t n);
 
 
-std::size_t get_id();
 int main()
 {
     unsigned short port = 1102;
@@ -57,7 +55,7 @@ int main()
 }
 void on_accet(msg_server_t* s,socket_spt c)
 {
-    std::size_t id = get_id();
+    std::size_t id = c->native();
     c->get_t().get_t() = id;
 
     std::cout<<"one in("<<id<<")\t"
@@ -88,6 +86,10 @@ void on_recv(msg_server_t* s,socket_spt c,king::net::tcp::bytes_spt buffer)
     else if(str == "i'm a solider")
     {
         post_str(s,c,"you are cerberus soldier now");
+    }
+    else if(str == "you are die")
+    {
+		s->stop();
     }
 }
 void on_send(msg_server_t* s,socket_spt c,king::net::tcp::bytes_spt buffer)
@@ -146,8 +148,4 @@ std::size_t get_message_size(const king::byte_t* b,std::size_t n)
     return len;
 }
 
-std::size_t get_id()
-{
-    static std::atomic<std::size_t> id;
-    return ++id;
-}
+

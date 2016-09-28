@@ -1,0 +1,38 @@
+# depslib dependency file v1.0
+1446667730 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\main.cpp
+
+1475028481 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\reader.cpp
+	"reader.h"
+
+1475028122 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\reader.h
+	<king/net/tcp/msg_reader.hpp>
+	"configure.h"
+
+1475029127 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\configure.h
+
+1475042199 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\server.cpp
+	"server.h"
+
+1475042180 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\server.h
+	<king/net/tcp/msg_server.hpp>
+	"configure.h"
+	"reader.h"
+	"socket.h"
+	"buffer.h"
+
+1475049589 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\socket.h
+	<memory>
+	<king/net/tcp/msg_reader.hpp>
+	<king/net/tcp/type.hpp>
+	"configure.h"
+
+1475034566 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\buffer.cpp
+	"buffer.h"
+
+1475034458 f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\buffer.h
+	<king/bytes/type.hpp>
+	"configure.h"
+
+1475049622 source:f:\lib\c++\king-cpp\shared\king\net\tcp\tcpmsg\socket.cpp
+	"socket.h"
+

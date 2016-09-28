@@ -17,8 +17,9 @@ const (
 
 func main() {
 	addr := "127.0.0.1:1102"
-	//doOnce(addr)
-	doMore(addr)
+	doOnce(addr, true)
+	//doOnce(addr,false)
+	//doMore(addr)
 
 }
 func doMore(addr string) {
@@ -85,7 +86,7 @@ func onMsgLong(c net.Conn, msg IMessage) {
 		//c.Close()
 	}
 }
-func doOnce(addr string) {
+func doOnce(addr string, stopserver bool) {
 	now := time.Now()
 	c, e := net.Dial("tcp", addr)
 	if e != nil {
@@ -95,7 +96,11 @@ func doOnce(addr string) {
 	log.Println("connect ", addr)
 	now1 := time.Now()
 
-	writeString(c, "this is msg 1")
+	for {
+		fmt.Println("send")
+		writeString(c, "this is msg 1")
+		time.Sleep(time.Millisecond * 1000)
+	}
 	writeString2(c, "this is msg 2 left", "this is msg 2 right")
 	writeString3(c, "this is msg 3")
 
@@ -114,13 +119,13 @@ func doOnce(addr string) {
 			if msg == nil {
 				break
 			}
-			onMsgOnce(c, msg)
+			onMsgOnce(c, msg, stopserver)
 		}
 	}
 	log.Println(time.Now().Sub(now1))
 	log.Println(time.Now().Sub(now))
 }
-func onMsgOnce(c net.Conn, msg IMessage) {
+func onMsgOnce(c net.Conn, msg IMessage, stopserver bool) {
 	str := string(msg.GetBody())
 	fmt.Println("recv", str)
 
@@ -129,7 +134,8 @@ func onMsgOnce(c net.Conn, msg IMessage) {
 	} else if str == "what you can do" {
 		writeString(c, "i'm a solider")
 	} else if str == "you are cerberus soldier now" {
-		c.Close()
+		//c.Close()
+		writeString(c, "you are die")
 	}
 }
 func writeString2(c net.Conn, s0, s1 string) {
