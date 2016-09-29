@@ -6,6 +6,11 @@
 #define HEADER_FALG 0x0000044E
 std::size_t get_message_size(const ktcp::byte_t* b,std::size_t n);
 
+//#define HEADER_SIZE 5
+//std::size_t get_gprs_message_size(const ktcp::byte_t* b,std::size_t n);
+
+#define KING_SHOW_MSG1
+
 bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str);
 
 void on_accept(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket);
@@ -45,10 +50,13 @@ int main()
     std::cout<<"work at :"<<port<<"\n";
 
     //註冊回調事件
+
     funcs.SetServerOnAccept(hServer,on_accept);
     funcs.SetServerOnClose(hServer,on_close);
     funcs.SetServerOnRecv(hServer,on_recv);
-    //funcs.SetServerOnSend(hServer,on_send);
+#ifdef KING_SHOW_MSG
+    funcs.SetServerOnSend(hServer,on_send);
+#endif // KING_SHOW_MSG
 
 
     //運行 工作 線程
@@ -88,6 +96,33 @@ std::size_t get_message_size(const ktcp::byte_t* b,std::size_t n)
 
     return len;
 }
+std::size_t get_gprs_message_size(const ktcp::byte_t* b,std::size_t n)
+{
+    //檢測 包頭 長度
+    if(n != HEADER_SIZE)
+    {
+        return KTCP_NET_TCP_ERROR_MSG;
+    }
+
+    //檢查 包頭 標記
+    if(b[0] != 0xCB ||
+		b[1] != 0xCA ||
+		b[2] != 0xBB)
+	{
+		return KTCP_NET_TCP_ERROR_MSG;
+	}
+
+    //獲取 包長
+    std::size_t len = *((std::uint16_t*)(b + 3));
+    //轉 大端 序列
+	std::swap(*(ktcp::byte_t*)&len,*(((ktcp::byte_t*)&len)+1));
+    if(len > MAX_MSG_SIZE)
+    {
+        return KTCP_NET_TCP_ERROR_MSG;
+    }
+
+    return len + HEADER_SIZE;
+}
 bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str)
 {
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
@@ -122,7 +157,7 @@ bool post_str(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,std::string str)
 void on_accept(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket)
 {
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
-
+#ifdef KING_SHOW_MSG
     {
         //創建一份 副本 以便 傳遞到其它地方
         ktcp::HSOCKET hSocketCopy =  funcs.CopySocket(hSocket);
@@ -142,18 +177,22 @@ void on_accept(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket)
     char ip[64] = {0};
     funcs.GetSocketRemoteIp(hSocket,ip,63);
     std::cout<<"one in("<<id<<")\t"<<ip<<":"<<port<<"\n";
+#endif // KING_SHOW_MSG
     post_str(hServer,hSocket,"welcome");
     post_str(hServer,hSocket,"this is cerberus's server");
 }
 void on_close(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket)
 {
+#ifdef KING_SHOW_MSG
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
 
     //don't call any hSocket func other than GetSocketData
     std::size_t id = funcs.GetSocketData(hSocket);
 
     std::cout<<"one out("<<id<<")\n";
+#endif // KING_SHOW_MSG
 }
+
 void on_recv(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
 {
     ktcp::funcs_t& funcs = ktcp::funcs_t::instance();
@@ -171,8 +210,9 @@ void on_recv(ktcp::HSERVER hServer,ktcp::HSOCKET hSocket,ktcp::HBUFFER hBuffer)
     std::size_t size = funcs.GetBufferSize(hBuffer);
 
     std::string str((char*)(ptr + HEADER_SIZE),size - HEADER_SIZE);
-    //std::cout<<"one recv\t"<<str<<"\n";
-
+#ifdef KING_SHOW_MSG
+    std::cout<<"one recv\t"<<str<<"\n";
+#endif // KING_SHOW_MSG
     if(str == "i want a job")
     {
         post_str(hServer,hSocket,"what you can do");
