@@ -14,7 +14,13 @@ namespace king
                 static T t;
                 return t;
             }
+            Singleton(const Singleton&copy)=delete;
+            Singleton& operator=(const Singleton&copy)=delete;
         public:
+            Singleton()
+            {
+
+            }
             static T& GetInstance()
             {
                return getInstance();
