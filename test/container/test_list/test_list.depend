@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1476149971 source:f:\lib\c++\king-cpp\test\container\test_list\main.cpp
+	<gtest/gtest.h>
+	<iostream>
+	<king/container/list.hpp>
+
