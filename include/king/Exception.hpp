@@ -6,6 +6,44 @@
 
 namespace king
 {
+    class Exception
+    {
+    protected:
+        std::string _what;
+        std::size_t _code = 0;
+        bool _e = false;
+    public:
+        explicit Exception()
+        {
+        }
+        explicit Exception(const std::string& what,const std::size_t code = 0)
+            :_what(what),
+            _code(code),
+            _e(true)
+        {
+        }
+        explicit Exception(const std::size_t code)
+            :_code(code),
+            _e(true)
+        {
+        }
+        inline const std::string& GetWhat()const
+        {
+            return _what;
+        }
+        inline const std::size_t GetCode()const
+        {
+            return _code;
+        }
+
+        explicit inline operator bool()
+        {
+            return _e;
+        }
+    };
+
+
+    //為兼容舊風格 的保留代碼
     class exception
     {
     protected:
