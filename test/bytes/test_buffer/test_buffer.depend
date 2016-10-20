@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1474858910 source:f:\lib\c++\king-cpp\test\bytes\test_buffer\main.cpp
+1474860002 source:f:\lib\c++\king-cpp\test\bytes\test_buffer\main.cpp
 	<cstdio>
 	<gtest/gtest.h>
 	<king/bytes/type.hpp>

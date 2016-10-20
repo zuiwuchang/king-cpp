@@ -10,7 +10,229 @@ namespace king
 namespace bytes
 {
 
+class Bytes
+{
+public:
+    //創建大小為 size 的 字節數組
+    explicit Bytes(const std::size_t size)//no throw
+    {
+        _bytes = new(std::nothrow) king::Byte[size];
+        if(_bytes)
+        {
+            _size = size;
+        }
+    }
+    //move
+    Bytes(Bytes&& m)
+    {
+        _bytes = m._bytes;
+        _size = m._size;
 
+        m._bytes = nullptr;
+        m._size = 0;
+    }
+    //move
+    Bytes& operator=(Bytes&& m)
+    {
+        if(_bytes)
+        {
+            delete[] _bytes;
+        }
+
+        _bytes = m._bytes;
+        _size = m._size;
+
+        m._bytes = nullptr;
+        m._size = 0;
+
+        return *this;
+    }
+
+    Bytes& operator=(const Bytes&) = delete;
+    Bytes(const Bytes&) = delete;
+    virtual ~Bytes()
+    {
+        if(_bytes)
+        {
+            delete[] _bytes;
+        }
+    }
+    //返回數組 是否不為 空
+    explicit inline operator bool()const
+    {
+        return _size != 0;
+    }
+    //返回數組 是否為空
+    inline bool Empty()const
+    {
+        return _size == 0;
+    }
+
+    //返回 數組 指針
+    inline king::Byte* Get()const
+    {
+        return _bytes;
+    }
+    //返回 數組 指針
+    inline operator king::Byte*()const
+    {
+        return _bytes;
+    }
+
+    //返回數組 大小
+    inline std::size_t Size()const
+    {
+        return _size;
+    }
+
+    //釋放 數組
+    void Reset()
+    {
+        if(_bytes)
+        {
+            delete[] _bytes;
+            _bytes = nullptr;
+            _size = 0;
+        }
+    }
+private:
+    king::Byte* _bytes = nullptr;
+    std::size_t _size = 0;
+};
+
+
+//數據 分片
+class Fragmentation
+{
+protected:
+    typedef king::Byte Byte;
+
+     //分片數據
+    std::shared_ptr<Bytes> _array;
+    std::size_t _capacity = 0;
+    std::size_t _offset = 0;
+    std::size_t _size = 0;
+
+public:
+
+    //創建 大小為 size 的分片
+    explicit Fragmentation(const std::size_t size):_capacity(size)
+    {
+        _array = std::make_shared<Bytes>(size);
+    }
+    Fragmentation(const Fragmentation& copy) = delete;
+    Fragmentation& operator=(const Fragmentation& copy) = delete;
+
+    //返回 分片 是否不為空
+    inline explicit operator bool()const
+    {
+        return _capacity != 0;
+    }
+    //返回 分片 是否為空
+    inline bool Empty()const
+    {
+        return _capacity == 0;
+    }
+
+    //重置 分片
+    inline void Init()
+    {
+        _offset = _size = 0;
+    }
+    //釋放 分片
+    inline void Reset()
+    {
+        _array.reset();
+        _capacity = _offset = _size = 0;
+    }
+
+    //返回 容量
+    inline std::size_t Capacity() const
+    {
+        return _capacity;
+    }
+    //返回 有效數據 實際大小
+    inline std::size_t Size() const
+    {
+        return _size;
+    }
+    //返回 空閒 容量
+    inline std::size_t GetFree()
+    {
+        return _capacity - _offset - _size;
+    }
+
+    //寫入數據 返回實際寫入量
+    std::size_t Write(const Byte* bytes,const std::size_t n)
+    {
+        std::size_t free = GetFree();
+        std::size_t need = n;
+        if(need > free)
+        {
+            need = free;
+        }
+        memcpy(_array->Get() + _offset + _size,bytes,need * sizeof(Byte));
+        _size += need;
+
+        return need;
+    }
+
+    //讀取 數據 返回實際讀取 量
+    //被讀取的 數據 將被 移除 緩衝區
+    std::size_t Read(Byte* bytes,const std::size_t n)
+    {
+        std::size_t need = n;
+        if(need > _size)
+        {
+            need = _size;
+        }
+
+        memcpy(bytes,_array->Get() + _offset,need * sizeof(Byte));
+        _size -= need;
+        _offset += need;
+
+        return need;
+    }
+
+    //只 copy 數據 不 刪除緩衝區
+    std::size_t CopyTo(Byte* bytes,const std::size_t n)const
+    {
+        std::size_t need = n;
+        if (n > _size)
+        {
+            need = _size;
+        }
+        memcpy(bytes,_array->Get() + _offset,need * sizeof(Byte));
+
+        return need;
+    }
+    //跳過n字節 copy
+    std::size_t CopyTo(const std::size_t skip,Byte* bytes,const std::size_t n)const
+    {
+        if(skip >= _size)
+        {
+            return 0;
+        }
+        std::size_t offset = _offset + skip;
+        std::size_t size = _size - skip;
+
+        std::size_t need = n;
+        if (need > size)
+        {
+            need = size;
+        }
+        memcpy(bytes,_array->Get() + offset,need * sizeof(Byte));
+
+        return need;
+    }
+};
+
+
+
+
+
+
+//為兼容舊風格 的保留代碼
 //字節數組
 class bytes_t
 {
