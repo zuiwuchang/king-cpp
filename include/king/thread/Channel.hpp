@@ -68,8 +68,8 @@ namespace king
             std::shared_ptr<LoopBuffer> _buffer;
 
             //是否 已經 關閉 操作流
-            bool _closeWrite = false;
-            bool _closeRead = false;
+            std::shared_ptr<bool> _closeWrite;
+            std::shared_ptr<bool> _closeRead;
         public:
            explicit Channel()
            {
@@ -78,6 +78,9 @@ namespace king
                _mutexRead = std::make_shared<boost::mutex>();
                _mutexRead->lock();
                _buffer = std::make_shared<LoopBuffer>();
+
+               _closeWrite = std::make_shared<bool>(false);
+               _closeRead = std::make_shared<bool>(false);
            }
            Channel(const Channel& copy)
            {
@@ -111,8 +114,9 @@ namespace king
                        _mutexWrite->lock();
 
                        boost::mutex::scoped_lock lock(*_mutex);
-                       if(_closeWrite)
+                       if(*_closeWrite)
                        {
+                           unlock(_mutexWrite);
                            return false;
                        }
 
@@ -151,8 +155,9 @@ namespace king
                        _mutexRead->lock();
 
                        boost::mutex::scoped_lock lock(*_mutex);
-                       if(_closeRead)
+                       if(*_closeRead)
                        {
+                           unlock(_mutexRead);
                            return false;
                        }
 
@@ -186,12 +191,12 @@ namespace king
            inline bool IsCloseWrite()const
            {
                boost::mutex::scoped_lock lock(*_mutex);
-               return _closeWrite;
+               return *_closeWrite;
            }
            inline bool IsCloseRead()const
            {
                boost::mutex::scoped_lock lock(*_mutex);
-               return _closeRead;
+               return *_closeRead;
            }
 
            //關閉 Write 流
@@ -201,7 +206,8 @@ namespace king
            inline void CloseWrite()
            {
                boost::mutex::scoped_lock lock(*_mutex);
-               _closeWrite = false;
+               *_closeWrite = true;
+               unlock(_mutexWrite);
            }
            //關閉 Read 流
            //使用 channel 不能在被 讀取 數據 同時 通知 所有 還在Read的 線程返回
@@ -210,7 +216,8 @@ namespace king
            inline void CloseRead()
            {
                boost::mutex::scoped_lock lock(*_mutex);
-               _closeRead = false;
+               *_closeRead = true;
+               unlock(_mutexRead);
            }
            //同時關閉 Write Read 流
            inline void Close()
