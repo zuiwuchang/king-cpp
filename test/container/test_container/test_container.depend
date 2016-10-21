@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1477027494 source:f:\lib\c++\king-cpp\test\container\test_container\main.cpp
+	<gtest/gtest.h>
+	<king/container/LoopBuffer.hpp>
+	<exception>
+
