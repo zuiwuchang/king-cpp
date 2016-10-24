@@ -12,6 +12,11 @@
     //關閉 channel 以通知等待中的 Write Read 返回
     void ch.Close();
 
+    //寫入/讀取 channel 如果失敗 立刻返回 而非阻塞
+    //如果返回 false 為 open 設置 channel 是否處於打開標記
+    bool TryWrite(const T& v,bool* open = nullptr)
+    bool TryRead(T& v,bool* open = nullptr)
+
     要求 :
         傳遞數據 必須滿足 copy 語義
         傳遞數據 必須存在 無參 T() 構造函數
@@ -46,27 +51,82 @@
     KING_SELECT_CHANNEL_BEGIN
     KING_SELECT_CHANNEL_THREAD(ch0,0)
     KING_SELECT_CHANNEL_THREAD(ch1,1)
-    ... other channel
+    //... other channel
     KING_SELECT_CHANNEL_SWITCH
-    KING_SELECT_CHANNEL_CASE(ch0,0,v0,open,
+    KING_SELECT_CHANNEL_CASE(ch0,0,val,open,
     {
         if(open)
-        { do work by v0}
+        {
+            //do work by val
+        }
         else
-        { do close}
+        {
+            //do close
+        }
     })
-    KING_SELECT_CHANNEL_CASE(ch1,1,v1,open,
+    KING_SELECT_CHANNEL_CASE(ch1,1,val,open,
     {
         if(open)
-        { do work by v1}
+        {
+            //do work by val
+        }
         else
-        { do close}
+        {
+            //do close
+        }
     })
-    ... other channel
+    //... other channel
     KING_SELECT_CHANNEL_END
 
     KING_SELECT_CHANNEL_BEGIN KING_SELECT_CHANNEL_END 內部 使用一個 while(true) 等待 任何 channel 的 數據通知 並且轉發到用戶代碼
     直到 所有 channel 都 關閉 才會 退出 KING_SELECT_CHANNEL_BEGIN KING_SELECT_CHANNEL_END 循環
+
+
+
+
+    KING_SELECT_CHANNEL(CHAN,VAR,OK,CLOSE,CODE) 宏
+    是使用 TryRead 的一個 輪詢方式的 select
+    注意 此方式 只能使用在 緩存 channel 中
+    TryRead 只有在 存在 數據可讀時 才會 返回 true 而對於 無緩存channel 在一個 Read 等待 Write 外的情況下 都不會寫入數據
+    TryRead 不會等待 Write 所以 Write 永遠不會 有 Read 等待它 所以 Write將 不會寫入數據 造成 Read 只會返回 false
+
+    當 使用 緩存時 即使沒有 Read 等待Write 只要 緩存 還空閒 Write 將會將數據寫入到 緩存
+    而此時 TryRead 發現 緩存中存在數據 就會 返回 true 並讀取 數據
+
+    通常一個 輪詢 select 會類似 如下代碼
+    bool channel_close;
+    std::size_t channel_count = ; //等待數量
+    while(channel_count)
+    {
+        KING_SELECT_CHANNEL(ch0,val,ok,&channel_close,{
+            if(ok)
+            {
+                //do work by val
+            }
+            else if(channel_close)
+            {
+                --channel_count;
+                //do close
+            }
+        })
+        KING_SELECT_CHANNEL(ch1,val,ok,&channel_close,{
+            if(ok)
+            {
+                //do work by val
+            }
+            else if(channel_close)
+            {
+                --channel_count;
+                //do close
+            }
+        })
+        //... other channel
+
+        //any wait
+        //Sleep(1);
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+    }
+
 */
 
 
@@ -182,6 +242,69 @@ namespace king
                 boost::unique_lock<boost::shared_mutex> shared_lock(_shared_mutex);
                 _close = true;
             }
+
+            //嘗試 寫入 數據 返回 是否 寫入 成功
+            //close 返回 channel 是否 處於關閉 狀態
+            //close 只有在 TryWrite 返回false 時才會被設置 在返回 true 時 不會進行任何操作
+            bool TryWrite(const T& v,bool* close = nullptr)
+            {
+                boost::unique_lock<boost::mutex> lock(_mutex);
+                if(IsClose())
+                {
+                    if(close)
+                    {
+                        *close = true;
+                    }
+                    _cv_consumer.notify_one();
+                    return false;
+                }
+
+                if(!_buffer.Free() || (_buffer.Size() == N && !_need))
+                {
+                    if(close)
+                    {
+                        *close = false;
+                    }
+                    return false;
+                }
+
+
+
+                _buffer.Write(v);
+
+                _cv_consumer.notify_one();
+
+                return true;
+            }
+
+            //嘗試 讀出 數據 返回 是否 讀出 成功
+            //...
+            bool TryRead(T& v,bool* close = nullptr)
+            {
+                boost::unique_lock<boost::mutex> lock(_mutex);
+                if(IsClose())
+                {
+                    if(close)
+                    {
+                        *close = true;
+                    }
+                    _cv_producer.notify_one();
+                    return false;
+                }
+                if(_buffer.Empty())
+                {
+                    if(close)
+                    {
+                        *close = false;
+                    }
+                    return false;
+                }
+
+                _buffer.Read(v);
+
+                _cv_producer.notify_one();
+                return true;
+            }
         };
 
 
@@ -243,6 +366,20 @@ namespace king
             {
                 _chan->Close();
             }
+
+             //嘗試 寫入 數據 返回 是否 寫入 成功
+            //close 返回 channel 是否 處於關閉 狀態
+            //close 只有在 TryWrite 返回false 時才會被設置 在返回 true 時 不會進行任何操作
+            inline bool TryWrite(const T& v,bool* close = nullptr)
+            {
+                return _chan->TryWrite(v,close);
+            }
+            //嘗試 讀出 數據 返回 是否 讀出 成功
+            //...
+            inline bool TryRead(T& v,bool* close = nullptr)
+            {
+                return _chan->TryRead(v,close);
+            }
         };
 
 
@@ -293,6 +430,18 @@ namespace king
 
 
 #define KING_SELECT_CHANNEL_END } } }
+
+
+
+
+#define KING_SELECT_CHANNEL(CHAN,VAR,OK,CLOSE,CODE) {\
+    bool OK = false;\
+    typedef decltype(CHAN) _KING_##CHAN##_t;\
+    _KING_##CHAN##_t::Data VAR;\
+    if(CHAN.TryRead(VAR,CLOSE))\
+    {OK=true;}\
+    CODE\
+}
     };
 };
 
