@@ -350,9 +350,17 @@ namespace king
             {
                 return _chan->Write(v);
             }
+            inline bool operator<<(const T& v)
+            {
+                return _chan->Write(v);
+            }
 
             //從 Channel 讀取數據
             inline bool Read(T& v)
+            {
+                return _chan->Read(v);
+            }
+            inline bool operator>>(T& v)
             {
                 return _chan->Read(v);
             }
