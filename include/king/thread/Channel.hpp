@@ -1,237 +1,298 @@
-/*  golang 中的 channel 實在讓人 垂涎欲滴
-    這是 孤在 c++ 中實現的 一個 類似的 channel
+/*  一個類似 golang channel 的東西
+    用於在多線程中 不使用明確鎖的 方式傳遞數據
 
-    用法基本同 golang channel
-    只是現在 使用 Channel<T,N> 創建 channel
-    使用 << 寫入數據到 channel
-    使用 >> 從channel 讀取數據
+    //定義一個 channel 傳輸 型別為 T 緩存大小為 N
+    Channel<T,N=0> ch;
+    //寫入到 channel
+    bool ch.Write(T);
+    //從 channel 讀取
+    bool ch.Read(T);
+    //返回 channel 是否關閉
+    bool ch.IsClose();
+    //關閉 channel 以通知等待中的 Write Read 返回
+    void ch.Close();
 
     要求 :
-        channel 傳輸的 數據 必須滿足 copy 語義
-        channel 傳輸的 數據 必須存在 無參 T() 構造函數
-
-    用法 :
-        基本 和 golang channel 一樣
-        只是 使用 << >> 讀寫數據
+        傳遞數據 必須滿足 copy 語義
+        傳遞數據 必須存在 無參 T() 構造函數
 
     依賴 :
-        boost::mutex
-            (boost lib : system)
+        boost thread smart any tuple
+            (boost::thread 是需要 編譯的 庫
+             同時 thread 庫 依賴 boost system datatime 庫)
 
+
+
+
+    golang 的 select 需要 在語言級別 提供支持
+    在c++中孤只能使用 多線程 以及 宏 提供 支持
+    (對於每個 要等待的 channel 都將 啟動一個 線程
+     好在不會存在 太多需要同時等待的 channel)
+
+    KING_SELECT_CHANNEL_BEGIN 和 KING_SELECT_CHANNEL_END 宏 定義一個 select的開始 和結尾 所有代碼 需要寫在兩者間
+
+    KING_SELECT_CHANNEL_THREAD(CHAN,N) 宏 定義一個 線程 用於 等待指定的channel (CHAN)
+    N 是一個 std::size_t 的任意不重複數字 用於和CHAN 進行 關聯
+
+    KING_SELECT_CHANNEL_SWITCH 定義一個 switch 語句 將 KING_SELECT_CHANNEL_THREAD 關聯的 CHAN N 路由到 case 中
+
+    KING_SELECT_CHANNEL_CASE(CHAN,N,VAR,OPEN,CODE) 定義一個 case 語句
+    CHAN 和 N 是 KING_SELECT_CHANNEL_THREAD 中 關聯的 CHAN 和 N
+    VAR 是 自定義的一個 變量名 用於 獲取 從 channel 中 讀取的 數據
+    OPEN 是 自定義的一個 變量名 用於 確認通知 是因為 成功從 channel 中讀取了 數據 / 還是因為 channel 關閉 而獲取到通知(此時 VAR 中將不存在 有效數據)
+    CODE 是 用戶 代碼 相當於 case N:{ 和 }break; 間的 代碼
+
+    通常一個 select 會類似 如下代碼
+    KING_SELECT_CHANNEL_BEGIN
+    KING_SELECT_CHANNEL_THREAD(ch0,0)
+    KING_SELECT_CHANNEL_THREAD(ch1,1)
+    ... other channel
+    KING_SELECT_CHANNEL_SWITCH
+    KING_SELECT_CHANNEL_CASE(ch0,0,v0,open,
+    {
+        if(open)
+        { do work by v0}
+        else
+        { do close}
+    })
+    KING_SELECT_CHANNEL_CASE(ch1,1,v1,open,
+    {
+        if(open)
+        { do work by v1}
+        else
+        { do close}
+    })
+    ... other channel
+    KING_SELECT_CHANNEL_END
+
+    KING_SELECT_CHANNEL_BEGIN KING_SELECT_CHANNEL_END 內部 使用一個 while(true) 等待 任何 channel 的 數據通知 並且轉發到用戶代碼
+    直到 所有 channel 都 關閉 才會 退出 KING_SELECT_CHANNEL_BEGIN KING_SELECT_CHANNEL_END 循環
 */
+
+
 #ifndef KING_LIB_HEADER_THREAD_CHANNEL
 #define KING_LIB_HEADER_THREAD_CHANNEL
 
-
-#include <boost/thread/mutex.hpp>
-
-#include <memory>
-
 #include <king/container/LoopBuffer.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/smart_ptr.hpp>
+
+#include <boost/any.hpp>
+#include <boost/tuple/tuple.hpp>
+
 namespace king
 {
     namespace thread
     {
-        class ClosedChannelWrite
-            :public king::Exception
+
+        //不要直接使用 隱藏的實現代碼
+        template<typename T,std::size_t N=0>
+        class _channel
         {
         public:
-            virtual const char* What()
-            {
-                return "king::thread::ClosedChannelWrite";
-
-            }
-        };
-        class ClosedChannelRead
-            :public king::Exception
-        {
-        public:
-            virtual const char* What()
-            {
-                return "king::thread::ClosedChannelRead";
-            }
-        };
-
-        //T channel 傳輸的數據
-        //N 緩存大小
-        template<typename T,std::size_t N = 0>
-        class Channel
-        {
+            typedef T Data;
         protected:
             //同步mutex
-            std::shared_ptr<boost::mutex> _mutexWrite;
-            std::shared_ptr<boost::mutex> _mutexRead;
-            std::shared_ptr<boost::mutex> _mutex;
+            boost::mutex _mutex;
 
-            //數據 緩衝區
+            //生產消費 通知
+            boost::condition_variable _cv_producer;
+            boost::condition_variable _cv_consumer;
+
+            //數據緩存
             typedef king::container::LoopBuffer<T,N+1> LoopBuffer;
-            std::shared_ptr<LoopBuffer> _buffer;
+            LoopBuffer _buffer;
+            //需要讀取數量
+            std::size_t _need = 0;
 
-            //是否 已經 關閉 操作流
-            std::shared_ptr<bool> _closeWrite;
-            std::shared_ptr<bool> _closeRead;
+            //是否關閉
+            bool _close = false;
+            boost::shared_mutex _shared_mutex;
+
         public:
-           explicit Channel()
-           {
-               _mutex = std::make_shared<boost::mutex>();
-               _mutexWrite = std::make_shared<boost::mutex>();
-               _mutexRead = std::make_shared<boost::mutex>();
-               _mutexRead->lock();
-               _buffer = std::make_shared<LoopBuffer>();
+            _channel(){}
+            _channel(const _channel& copy)=delete;
+            _channel& operator=(const _channel& copy)=delete;
 
-               _closeWrite = std::make_shared<bool>(false);
-               _closeRead = std::make_shared<bool>(false);
-           }
-           Channel(const Channel& copy)
-           {
-               _mutex = copy._mutex;
-               _mutexWrite = copy._mutexWrite;
-               _mutexRead = copy._mutexRead;
-               _buffer = copy._buffer;
-
-               _closeWrite = copy._closeWrite;
-               _closeRead = copy._closeRead;
-           }
-           Channel& operator=(const Channel& copy)
-           {
-               _mutex = copy._mutex;
-               _mutexWrite = copy._mutexWrite;
-               _mutexRead = copy._mutexRead;
-               _buffer = copy._buffer;
-
-               _closeWrite = copy._closeWrite;
-               _closeRead = copy._closeRead;
-               return *this;
-           }
-
-           //寫入數據 到 channel
-           bool Write(const T& v)
-           {
-               while(true)
-               {
-                   try
-                   {
-                       _mutexWrite->lock();
-
-                       boost::mutex::scoped_lock lock(*_mutex);
-                       if(*_closeWrite)
-                       {
-                           unlock(_mutexWrite);
-                           return false;
-                       }
-
-                       _buffer->Write(v);
-                       if(_buffer->Free())
-                       {
-                           unlock(_mutexWrite);
-                       }
-
-                       unlock(_mutexRead);
-
-                       break;
-                   }
-                   catch(const king::container::BadLoopBufferWrite&)
-                   {
-                   }
-               }
-               return true;
-           }
-           Channel& operator<<(const T& v) //如果 寫入流已關閉 throw ClosedChannelWrite
-           {
-               if(!Write(v))
-               {
-                   throw ClosedChannelWrite();
-               }
-               return *this;
-           }
-
-           //從 channel 讀取 數據
-           bool Read(T& v)
-           {
-               while(true)
-               {
-                   try
-                   {
-                       _mutexRead->lock();
-
-                       boost::mutex::scoped_lock lock(*_mutex);
-                       if(*_closeRead)
-                       {
-                           unlock(_mutexRead);
-                           return false;
-                       }
-
-                       _buffer->Read(v);
-                       if(!_buffer->Empty())
-                       {
-                           unlock(_mutexRead);
-                       }
-
-                       unlock(_mutexWrite);
-
-                       break;
-                   }
-                   catch(const king::container::BadLoopBufferRead&)
-                   {
-                   }
-               }
-
-               return true;
-           }
-           Channel& operator>>(T& v) //如果 讀取流已關閉 throw ClosedChannelRead
-           {
-               if(!Read(v))
-               {
-                   throw ClosedChannelRead();
-               }
-               return *this;
-           }
-
-           //返回 操作 流 是否已經 關閉
-           inline bool IsCloseWrite()const
-           {
-               boost::mutex::scoped_lock lock(*_mutex);
-               return *_closeWrite;
-           }
-           inline bool IsCloseRead()const
-           {
-               boost::mutex::scoped_lock lock(*_mutex);
-               return *_closeRead;
-           }
-
-           //關閉 Write 流
-           //使用 channel 不能在被 寫入 數據 同時 通知 所有 還在Write的 線程返回
-           //(Write 將 返回 false
-           //<< 將 throw ClosedChannelWrite)
-           inline void CloseWrite()
-           {
-               boost::mutex::scoped_lock lock(*_mutex);
-               *_closeWrite = true;
-               unlock(_mutexWrite);
-           }
-           //關閉 Read 流
-           //使用 channel 不能在被 讀取 數據 同時 通知 所有 還在Read的 線程返回
-           //(Read 將 返回 false
-           //>> 將 throw ClosedChannelRead)
-           inline void CloseRead()
-           {
-               boost::mutex::scoped_lock lock(*_mutex);
-               *_closeRead = true;
-               unlock(_mutexRead);
-           }
-           //同時關閉 Write Read 流
-           inline void Close()
-           {
-               CloseWrite();
-               CloseRead();
-           }
-        protected:
-            inline void unlock(std::shared_ptr<boost::mutex> mutex)
+            bool Write(const T& v)
             {
-                mutex->try_lock();
-                mutex->unlock();
+                boost::unique_lock<boost::mutex> lock(_mutex);
+                while(!_buffer.Free() || (_buffer.Size() == N && !_need))
+                {
+                    _cv_producer.wait(lock);
+
+                    if(IsClose())
+                    {
+                        _cv_consumer.notify_one();
+                        return false;
+                    }
+                }
+
+                if(IsClose())
+                {
+                    _cv_consumer.notify_one();
+                    return false;
+                }
+
+                _buffer.Write(v);
+
+                _cv_consumer.notify_one();
+
+                return true;
+            }
+
+
+            //從 Channel 讀取數據
+            bool Read(T& v)
+            {
+                boost::unique_lock<boost::mutex> lock(_mutex);
+                while(_buffer.Empty())
+                {
+                    ++_need;
+                    _cv_producer.notify_one();
+                    _cv_consumer.wait(lock);
+                    --_need;
+
+                    if(IsClose())
+                    {
+                        _cv_producer.notify_one();
+                        return false;
+                    }
+                }
+                if(IsClose())
+                {
+                    _cv_producer.notify_one();
+                    return false;
+                }
+
+                _buffer.Read(v);
+
+                _cv_producer.notify_one();
+                return true;
+            }
+
+            //
+            inline bool IsClose()
+            {
+                boost::shared_lock<boost::shared_mutex> shared_lock(_shared_mutex);
+                return _close;
+            }
+            inline void Close()
+            {
+                boost::unique_lock<boost::shared_mutex> shared_lock(_shared_mutex);
+                _close = true;
             }
         };
+
+
+        template<typename T,std::size_t N=0>
+        class Channel
+        {
+        public:
+            typedef T Data;
+        protected:
+            typedef _channel<T,N> _channel_t;
+            //同步mutex
+            boost::shared_ptr<_channel_t> _chan;
+        public:
+            Channel()
+            {
+                _chan = boost::make_shared<_channel_t>();
+            }
+
+            Channel(const Channel& copy)
+            {
+                _chan = copy._chan;
+            }
+            Channel& operator=(const Channel& copy)
+            {
+                _chan = copy._chan;
+                return *this;
+            }
+
+            Channel(Channel&& copy)
+            {
+                _chan = copy._chan;
+                copy._chan.reset();
+            }
+            Channel& operator=(Channel&& copy)
+            {
+                _chan = copy._chan;
+                copy._chan.reset();
+                return *this;
+            }
+
+            //寫入 數據 到 Channel
+            inline bool Write(const T& v)
+            {
+                return _chan->Write(v);
+            }
+
+            //從 Channel 讀取數據
+            inline bool Read(T& v)
+            {
+                return _chan->Read(v);
+            }
+
+            //
+            inline bool IsClose()
+            {
+                return _chan->IsClose();
+            }
+            inline void Close()
+            {
+                _chan->Close();
+            }
+        };
+
+
+
+
+
+#define KING_SELECT_CHANNEL_INDEX_CASE  0
+#define KING_SELECT_CHANNEL_INDEX_DATA  1
+#define KING_SELECT_CHANNEL_INDEX_OPEN  2
+#define KING_SELECT_CHANNEL_BEGIN  {\
+    typedef boost::tuples::tuple<std::size_t,boost::any,bool> _KING_any_data_t;\
+    typedef king::thread::Channel<_KING_any_data_t> _KING_ch_any_t;\
+    _KING_ch_any_t _KING_ch_any;\
+    std::size_t _KING_sum = 0;
+
+#define KING_SELECT_CHANNEL_THREAD(CHAN,N) \
+    ++_KING_sum;\
+    typedef decltype(CHAN) _KING_##CHAN##_t;\
+    boost::thread _KING_thread_##CHAN([&CHAN,&_KING_ch_any]()\
+    {\
+        _KING_##CHAN##_t::Data data;\
+        while(CHAN.Read(data))\
+        {\
+            _KING_ch_any.Write(boost::tuples::make_tuple(std::size_t(N),boost::any(data),true));\
+        }\
+        _KING_ch_any.Write(boost::tuples::make_tuple(std::size_t(N),boost::any(data),false));\
+    });
+
+#define KING_SELECT_CHANNEL_SWITCH \
+    _KING_any_data_t _KING_any_data;\
+    while(_KING_sum)\
+    {\
+        _KING_any_data_t data;\
+        _KING_ch_any.Read(data);\
+        switch(data.get<KING_SELECT_CHANNEL_INDEX_CASE>())\
+        {
+
+#define KING_SELECT_CHANNEL_CASE(CHAN,N,VAR,OPEN,CODE) \
+    case N:\
+    {\
+    typedef _KING_##CHAN##_t::Data _KING_chan_data_t;\
+    _KING_chan_data_t& VAR = boost::any_cast<_KING_chan_data_t&>(data.get<KING_SELECT_CHANNEL_INDEX_DATA>());\
+    bool OPEN = data.get<KING_SELECT_CHANNEL_INDEX_OPEN>();\
+    if(!OPEN){--_KING_sum;}\
+    {CODE}\
+    }\
+    break;
+
+
+#define KING_SELECT_CHANNEL_END } } }
     };
 };
 
