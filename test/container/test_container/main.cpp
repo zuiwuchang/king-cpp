@@ -1,13 +1,36 @@
 #include <gtest/gtest.h>
 
 #include <king/container/LoopBuffer.hpp>
-#include <exception>
+
 int main(int argc, char* argv[])
 {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
 #define LOOP_BUFFER_N   5
+TEST(LoopBufferResetTest, HandleNoneZeroInput)
+{
+    typedef  king::container::LoopBuffer<std::size_t,LOOP_BUFFER_N> LoopBuffer;
+    LoopBuffer loop([](std::size_t& v){
+                    v = 0;
+    });
+    for(std::size_t i=0;i<LOOP_BUFFER_N;++i)
+    {
+        loop<<i+1;
+    }
+
+    auto iter = loop.begin();
+    EXPECT_EQ(*iter,1);
+    for(std::size_t i=0;i<LOOP_BUFFER_N;++i)
+    {
+        std::size_t v;
+        loop>>v;
+        EXPECT_EQ(v,i+1);
+    }
+    EXPECT_EQ(*iter,0);
+    EXPECT_TRUE(loop.Empty());
+
+}
 TEST(LoopBufferIteratorTest, HandleNoneZeroInput)
 {
     typedef  king::container::LoopBuffer<std::size_t,LOOP_BUFFER_N> LoopBuffer;

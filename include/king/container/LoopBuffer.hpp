@@ -3,6 +3,19 @@
     要求 :
         緩存數據 必須滿足 copy 語義
         緩存數據 必須存在 無參 T() 構造函數
+
+
+
+    //在尾部 寫入數據
+    LoopBuffer& Write(const T& v) //throw BadLoopBufferWrite
+    inline LoopBuffer& operator<<(const T& v)//throw BadLoopBufferWrite
+    bool TryWrite(const T& v)//no throw
+
+
+    //從頭部 讀取數據
+    LoopBuffer& Read(T& v) //throw BadLoopBufferRead
+    inline LoopBuffer& operator>>(T& v)//throw BadLoopBufferRead
+    bool TryRead(T& v) //no throw
 */
 #ifndef KING_LIB_HEADER_CONTAINER_LOOP_BUFFER
 #define KING_LIB_HEADER_CONTAINER_LOOP_BUFFER
@@ -11,6 +24,8 @@
 #include <memory>
 #include <array>
 #include <type_traits>
+#include <functional>
+
 #include <king/Exception.hpp>
 
 namespace king
@@ -41,11 +56,39 @@ namespace container
     class LoopBuffer
     {
     public:
+        typedef std::function<void(T&)> ResetSft;
+    protected:
+        ResetSft _reset_sft;
+        inline void resetT(T& v)
+        {
+            if(_reset_sft)
+            {
+                _reset_sft(v);
+            }
+            else
+            {
+                v = T();
+            }
+        }
+    public:
         explicit LoopBuffer()
         {
             static_assert(N>0,"N must larage 0");
         }
-        virtual ~LoopBuffer(){}
+        explicit LoopBuffer(ResetSft func):_reset_sft(func)
+        {
+            static_assert(N>0,"N must larage 0");
+        }
+        virtual ~LoopBuffer()
+        {
+            if(_reset_sft)
+            {
+                for(T& v:*this)
+                {
+                    _reset_sft(v);
+                }
+            }
+        }
     protected:
         LoopBuffer(const LoopBuffer& copy) = delete;
         LoopBuffer& operator=(const LoopBuffer& copy) = delete;
@@ -149,7 +192,7 @@ namespace container
             }
 
             v = _buffer[_begin];
-            _buffer[_begin++] = T();
+            resetT(_buffer[_begin++]);
             --_n;
             if(_begin == N)
             {
@@ -169,7 +212,7 @@ namespace container
             }
 
             v = _buffer[_begin];
-            _buffer[_begin++] = T();
+            resetT(_buffer[_begin++]);
             --_n;
             if(_begin == N)
             {
