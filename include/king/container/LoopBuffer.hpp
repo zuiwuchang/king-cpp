@@ -58,6 +58,7 @@ namespace container
     public:
         typedef std::function<void(T&)> ResetSft;
     protected:
+        //如何 重置 數據
         ResetSft _reset_sft;
         inline void resetT(T& v)
         {
@@ -104,6 +105,23 @@ namespace container
         //有效 數據 量
         std::size_t _n = 0;
     public:
+        //交還緩衝區
+        void Swap(LoopBuffer& other)
+        {
+            _buffer.swap(other._buffer);
+            std::swap(_begin,other._begin);
+            std::swap(_end,other._end);
+
+            std::swap(_n,other._n);
+
+            _reset_sft.swap(other._reset_sft);
+
+        }
+        inline swap(LoopBuffer& other)
+        {
+            Swap(other);
+        }
+
         //返回 緩衝區 最大容納 數據量
         inline std::size_t Capacity()const
         {
@@ -123,7 +141,7 @@ namespace container
         }
 
         //返回 有效 數據 是否存在
-        inline operator bool()const
+        explicit inline operator bool()const
         {
             return _n != 0;
         }

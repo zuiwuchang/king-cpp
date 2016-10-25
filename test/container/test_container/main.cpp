@@ -168,3 +168,4 @@ TEST(LoopBufferTest, HandleNoneZeroInput)
         EXPECT_TRUE(loop.Empty());
     }
 }
+
