@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <array>
+#include <type_traits>
 #include <king/Exception.hpp>
 
 namespace king
@@ -40,7 +41,10 @@ namespace container
     class LoopBuffer
     {
     public:
-        explicit LoopBuffer(){}
+        explicit LoopBuffer()
+        {
+            static_assert(N>0,"N must larage 0");
+        }
         virtual ~LoopBuffer(){}
     protected:
         LoopBuffer(const LoopBuffer& copy) = delete;
