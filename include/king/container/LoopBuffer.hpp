@@ -144,7 +144,8 @@ namespace container
                 throw BadLoopBufferRead();
             }
 
-            v = _buffer[_begin++];
+            v = _buffer[_begin];
+            _buffer[_begin++] = T();
             --_n;
             if(_begin == N)
             {
@@ -163,7 +164,8 @@ namespace container
                 return false;
             }
 
-            v = _buffer[_begin++];
+            v = _buffer[_begin];
+            _buffer[_begin++] = T();
             --_n;
             if(_begin == N)
             {
