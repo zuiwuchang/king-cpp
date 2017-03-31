@@ -7,6 +7,9 @@
 
 namespace king
 {
+	/**
+		8bit 整型
+	*/
 	typedef std::int8_t Int8;
 	typedef std::int16_t Int16;
 	typedef std::int32_t Int32;

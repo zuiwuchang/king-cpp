@@ -6,11 +6,17 @@
 
 namespace king
 {
+    /**
+    *   \brief 異常基類
+    */
     class Exception
     {
     public:
         explicit Exception(){}
         virtual ~Exception(){}
+        /**
+        *   \brief 返回 異常 描述字符串
+        */
         virtual const char* What() const
         {
             return "king::Exception";

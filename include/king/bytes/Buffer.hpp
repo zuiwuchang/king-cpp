@@ -9,30 +9,60 @@ namespace king
 {
 namespace bytes
 {
-
+    
+/**
+*   \brief king::Byte 流緩衝區
+*
+*   類似 golang的bytes.Buffer提供了一個 Byte 的 讀寫流緩衝區
+*/
 class Buffer
 {
 public:
+    /** 
+    *    \brief 字節定義
+    */
     typedef king::Byte Byte;
+    /** 
+    *   \brief 分片定義
+    */
     typedef std::shared_ptr<Fragmentation> FragmentationSpt;
 protected:
-    //參考分片 大小
+    /** 
+    *   \brief 創建分片時 分片的參考大小
+    */
     int _capacity;
 
-    //分片 緩存
+    /** 
+    *   \brief 分片 緩存
+    */
     std::list<FragmentationSpt> _fragmentations;
 
-    //緩存一個 分片 以便 可以重複利用
-	FragmentationSpt _cache;
+    /** 
+    *   \brief 緩存一個 分片 以便 可以重複利用
+    */
+    FragmentationSpt _cache;
 public:
+     /** 
+    *   \brief 構造一個 緩衝區
+    *   \param capacity 當需要創建新分片時 分片參考大小
+    */
     explicit Buffer(int capacity = 1024):_capacity(capacity)
     {
     }
+
+    /** 
+    *   \brief 不可拷貝
+    */
     Buffer& operator=(const Buffer&) = delete;
+    /** 
+    *   \brief 不可拷貝
+    */
     Buffer(const Buffer&) = delete;
 
-    //清空流中的 數據
-    //clearcache 是否刪除 _cache
+    /** 
+    *   \brief 清空流中的 數據
+    *   \param clearcache  是否刪除 this._cache
+    */
     void Reset(bool clearcache = true)
     {
         if(clearcache)
@@ -48,13 +78,18 @@ public:
         }
         _fragmentations.clear();
     }
-    //刪除 _cache
+
+    /** 
+    *   \brief 刪除 this._cache
+    */
     inline void ResetCache()
     {
          _cache.reset();
     }
 
-    //返回 流中 待讀字節數
+    /** 
+    *   \brief 返回 流中 待讀字節數
+    */
     std::size_t Size()const
     {
        std::size_t sum = 0;
@@ -65,8 +100,14 @@ public:
        return sum;
     }
 
-    //向流中 寫入數據 返回實際寫入 數據長度
-    //如果 發生任何 錯誤 將 不寫入 數據 並返回 0
+    /** 
+    *   \brief 向流中 寫入數據
+    *
+    *   如果 發生任何 錯誤 將 不寫入 數據 並返回 0
+    *   \param bytes    待 寫入字節指針
+    *   \param n    寫入長度
+    *   \return 實際寫入長度 
+    */
     std::size_t Write(const Byte* bytes,const std::size_t n)
     {
         if(!n)
@@ -140,7 +181,11 @@ public:
         return n;
     }
 protected:
-    //創建 一個大小至少為 capacity 的分片
+    /** 
+    *   \brief 創建 一個大小至少為 capacity 的分片
+    *
+    *   \param capacity  分片參考大小
+    */
     FragmentationSpt createFragmentation(const std::size_t capacity)
     {
         try
@@ -167,9 +212,16 @@ protected:
     }
 
 public:
-    //將緩衝區 copy 到指定內存 返回實際 copy數據長
-    //被copy的數據 不會從 緩衝區中 刪除
-    //如果 n > 緩衝區 數據 將 只copy 緩衝區 否則 copy n 字節數據
+     /** 
+    *   \brief 將緩衝區 copy 到指定內存 返回實際 copy數據長
+    *
+    *   被copy的數據 不會從 緩衝區中 刪除\n
+    *   如果 n > 緩衝區 數據 將 只copy 緩衝區 否則 copy n 字節數據
+    *
+    *   \param bytes    待 讀緩衝區
+    *   \param n    緩衝區長度
+    *   \return 返回實際 copy數據長
+    */
     std::size_t CopyTo(Byte* bytes,std::size_t n)const
     {
         std::size_t sum = 0;
@@ -188,6 +240,17 @@ public:
         }
         return sum;
     }
+    /** 
+    *   \brief 將緩衝區 copy 到指定內存 返回實際 copy數據長
+    *
+    *   被copy的數據 不會從 緩衝區中 刪除\n
+    *   如果 n > 緩衝區 數據 將 只copy 緩衝區 否則 copy n 字節數據
+    *
+    *   \param skip    忽略 Buffer 中前skip個字節
+    *   \param bytes    待 讀緩衝區
+    *   \param n    緩衝區長度
+    *   \return 返回實際 copy數據長
+    */
     std::size_t CopyTo(std::size_t skip,Byte* bytes,std::size_t n)const
     {
         std::size_t sum = 0;
@@ -229,8 +292,13 @@ public:
     }
 
 
-    //從流中 讀取數據 被讀取的數據 將被刪除
-    //返回 實際 讀取數據流
+    /** 
+    *   \brief 從流中 讀取數據 被讀取的數據 將被刪除
+    *
+    *   \param bytes    待 讀緩衝區
+    *   \param n    緩衝區長度
+    *   \return 實際 讀取數據流 長度
+    */
     std::size_t Read(Byte* bytes,std::size_t n)
     {
         std::size_t sum = 0;
@@ -253,6 +321,9 @@ public:
         return sum;
     }
 protected:
+    /** 
+    *   \brief 返回當前 可讀 緩衝區 或 空指針
+    */
     FragmentationSpt getReadFragmentation()
     {
         while(!_fragmentations.empty())
@@ -269,7 +340,9 @@ protected:
 
         return FragmentationSpt();
     }
-    //設置 緩存
+    /** 
+    *   \brief 將 f 設置爲 緩存
+    */
     inline void cacheFragmentation(const FragmentationSpt& f)
     {
         if(!_cache || _cache->Size() < f->Size())
@@ -278,7 +351,9 @@ protected:
         }
     }
 
-    //刪除 無數據可讀的 分片
+    /** 
+    *   \brief 刪除 無數據可讀的 分片
+    */
     void removeNoReadFragmentation()
     {
         while(!_fragmentations.empty())
