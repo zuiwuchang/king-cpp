@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1490941785 source:/home/king/program/lib/c++/king-cpp/test/crypto/test_Classical/main.cpp
+	<gtest/gtest.h>
+	<king/crypto/Classical.hpp>
+	<iostream>
+	<string>
+
+1490942365 /home/king/program/lib/c++/king-cpp/include/king/crypto/Classical.hpp
+	<king/Core.hpp>
+	<ctime>
+
+1490924713 /home/king/program/lib/c++/king-cpp/include/king/Core.hpp
+	<cstdint>
+	<memory>
+
